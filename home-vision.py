@@ -10,11 +10,11 @@ import sched
 import threading
 
 logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s %(name)s %(levelname)s - %(message)s')  # include timestamp
+                    format='%(asctime)s %(name)s %(levelname)s - %(message)s')
 
 class FaceCapture(object):
     """Capture video for the specific door and run face detector algorithms on it"""
-    CAPTURE_DURATION = 1.0
+    CAPTURE_DURATION = 0
 
     logger = logging.getLogger("face-capture")
     lock = threading.Lock()
@@ -40,6 +40,7 @@ class FaceCapture(object):
         thread.start_new(self._process_video, ())
 
     def _process_video(self):
+        #faceCascade = cv2.CascadeClassifier("haarcascade_eye_tree_eyeglasses.xml")
         faceCascade = cv2.CascadeClassifier("haarcascade_frontalface_default.xml")
         video_capture = cv2.VideoCapture(self.get_camera())
         start_time = time.clock()
@@ -52,26 +53,26 @@ class FaceCapture(object):
 
         while True:
             (ret, frame) = video_capture.read()
-            #frame = cv2.imread("Y:\\home-vision\\raw\\bug-eyes.jpg")
+            #frame = cv2.imread("raw.jpg")
             if frame is not None:
                 frames += 1
-                gray = cv2.cvtColor(frame[140:380, 160:340], cv2.COLOR_BGR2GRAY)
+                #gray = cv2.cvtColor(frame[140:380, 160:340], cv2.COLOR_BGR2GRAY)
+                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
                 faces = faceCascade.detectMultiScale(
                     gray,
                     scaleFactor=1.1,
-                    minNeighbors=5,
-                    minSize=(24, 24),
-                    maxSize=(64, 64),
-                    flags=cv2.CASCADE_SCALE_IMAGE
+                    minNeighbors=8,
+                    minSize=(20, 20),
+                    flags=cv2.CASCADE_DO_CANNY_PRUNING
                 )
 
                 if not full_frame_saved and (time.clock() - start_time > 3.0):
-                    cv2.imwrite("raw/full-" + door + "-" + str(uuid.uuid1()) + ".jpg", frame)
+                    cv2.imwrite("raw/full-" + self.door + "-" + str(uuid.uuid1()) + ".jpg", frame)
                     full_frame_saved = True
 
                 for (x, y, w, h) in faces:
                     face = gray[y:y+h, x:x+w]
-                    candidate_faces += face
+                    candidate_faces.append(face)
 
             # Check to see if we are out of time
             with self.lock:
@@ -83,8 +84,11 @@ class FaceCapture(object):
 
         if len(candidate_faces) > 0:
             self.logger.info("Processing faces...")
+            total_kept = 0
             for face in candidate_faces:
-                cv2.imwrite("raw/" + door + str(uuid.uuid1()) + ".jpg", face)
+                cv2.imwrite("raw/" + self.door + str(uuid.uuid1()) + ".jpg", face)
+                total_kept += 1
+            self.logger.info("Done (total faces = %d)", total_kept)
         video_capture.release()
 
 class ArrivalProcesor(object):
@@ -147,4 +151,6 @@ class ArrivalProcesor(object):
         allsub[subject](msg.topic.split('/')[1], msg.payload)
 
 
+
+FaceCapture("kitchen").start()
 ArrivalProcesor().connect_and_run_forever()
