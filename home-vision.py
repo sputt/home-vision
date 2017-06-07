@@ -14,7 +14,7 @@ logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(name)s %(levelname)s - %(message)s')
 
 class FaceCapture(object):
-    """Capture video for the specific door and run face detector algorithms on it"""
+    """Capture video for the specific door and run face detector and identifier algorithms on it"""
     CAPTURE_DURATION = 6.0
 
     logger = logging.getLogger("face-capture")
@@ -99,15 +99,29 @@ class FaceCapture(object):
         if len(candidate_faces) > 0:
             self.logger.debug("Processing faces...")
             total_kept = 0
+
+            total_identities = {}
             for face in candidate_faces:
                 identity, confidence = self.processor.identify(self.door, face)
-                self.logger.info("Identified: " + identity)
-                cv2.imwrite("raw/" + self.door + "-" + str(uuid.uuid1()) + ".jpg", face)
+
+                if not identity in total_identities: total_identities[identity] = 0
+                total_identities[identity] += 1
+
+                img_id = str(uuid.uuid1())
+                self.logger.debug("Identified %s for image id %s", identity, img_id)
+                cv2.imwrite("raw/" + self.door + "-" + img_id + ".jpg", face)
                 total_kept += 1
+
             self.logger.debug("Done (total faces = %d)", total_kept)
+
+            user = max(total_identities, key=total_identities.get)
+            self.logger.info("User identified: " + user)
+        else:
+            self.logger.info("No user identified this time")
         video_capture.release()
 
 class FaceProcessor(object):
+    """Train a face recognizer periodically and supply the ability to identify faces"""
     logger = logging.getLogger("face-processor")
 
     recognizers = {}
@@ -122,7 +136,7 @@ class FaceProcessor(object):
         self.face_processor.start()
 
     def identify(self, room, image):
-        self.logger.info("Identifying image in room %s", room)
+        self.logger.debug("Identifying image in room %s", room)
         #gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         resized_image = cv2.resize(image, self.dimensions[room])
 
@@ -139,7 +153,7 @@ class FaceProcessor(object):
         user_idx = 0
         for user in users:
             for room in os.listdir("users/" + user):
-                self.logger.info("Processing room %s", room)
+                self.logger.info("Processing room %s user %s", room, user)
 
                 #identifiers[room] = recognizer
                 for image in self._get_images(user, room):
@@ -157,14 +171,13 @@ class FaceProcessor(object):
             room_images = map(lambda x:x[0], images[room])
             largest_image = max(room_images, key = lambda x: x.size)
 
+            # Resize all of the images to the size of the largest library image
             resized_room_images = map(lambda x: cv2.resize(x, largest_image.shape[:2]), room_images)
 
             self.logger.info("Images: %d", len(resized_room_images))
 
+            # Train the face recognizer and provide the labels
             recognizer.train(resized_room_images, numpy.array(map(lambda x:x[1], images[room])))
-
-
-            self.logger.info("Dimensions = %s", str(largest_image.shape[:2]))
 
             self.dimensions[room] = largest_image.shape[:2]
             self.recognizers[room] = recognizer
@@ -177,7 +190,8 @@ class FaceProcessor(object):
     def _get_images(self, user, room):
         dir = "users/" + user + "/" + room
         for image in os.listdir(dir):
-            yield cv2.imread(dir + "/" + image, cv2.IMREAD_GRAYSCALE)
+            if ".jpg" in image:
+                yield cv2.imread(dir + "/" + image, cv2.IMREAD_GRAYSCALE)
 
 
 class ArrivalProcesor(object):
