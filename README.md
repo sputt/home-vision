@@ -9,6 +9,8 @@ Identify users from camera inputs based on other home automation triggers, using
 <li>Running a Fisher face recognizer, trained based on other home automation data, to identify who has entered the home through any of the monitored doors
 </ul>
 
+In the background, a Homeseer server sends commands to Z-wave enabled lights that will optimally light the entry areas, when the appropriate trigger conditions are met. This improves the accuracy of the facial recognition.
+
 <h2>Sources of data:</h2>
 <table><tr>
 <td>Door opening/closing</td><td>Reed switch on all external doors, hooked into a Raspberry Pi at a central location</td>
