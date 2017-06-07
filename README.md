@@ -18,6 +18,8 @@ Identify users from camera inputs based on other home automation triggers, using
 </tr>
 <tr>
 <td>Camera inputs</td><td>Webcams and Raspi cams attached to devices on the network</td>
+</tr>
+<tr>
 <td>MQTT server</td><td>Running on a Raspberry Pi on the network</td>
 </tr>
 </table>
