@@ -123,11 +123,11 @@ class FaceProcessor(object):
 
     def identify(self, room, image):
         self.logger.info("Identifying image in room %s", room)
-        gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        resized_image = cv2.resize(gray_image, self.dimensions[room])
+        #gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        resized_image = cv2.resize(image, self.dimensions[room])
 
         id, conf = self.recognizers[room].predict(resized_image)
-        return labels[id], conf
+        return self.labels[id], conf
 
     def process(self):
         self.logger.info("Training face recognizer...")
