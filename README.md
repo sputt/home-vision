@@ -1,5 +1,26 @@
 # home-vision
-Process multiple camera input based on other home automation triggers
+Identify users from camera inputs based on other home automation triggers, using piped-in data (via MQTT) to further train the model automatically
+
+<h2>The features of this program include:</h2>
+<ul>
+<li>Integrating with an MQTT server on the network to react based on home automation events
+<li>Starting recording using a webcam when a door is opened
+<li>Using a Haar cascade to identify potential faces in an image
+<li>Running a Fisher face recognizer, trained based on other home automation data, to identify who has entered the home through any of the monitored doors
+</ul>
+
+<h2>Sources of data:</h2>
+<table><tr>
+<td>Door opening/closing</td><td>Reed switch on all external doors, hooked into a Raspberry Pi at a central location</td>
+</tr>
+<tr>
+<td>User presence in the home</td><td>Node.JS process running which scrapes the Wi-Fi router's admin page to determine if the user's phone's MAC is connected.  This input is routed through Homeseer and relayed via a MQTT plugin</td>
+</tr>
+<tr>
+<td>Camera inputs</td><td>Webcams and Raspi cams attached to devices on the network</td>
+<td>MQTT server</td><td>Running on a Raspberry Pi on the network</td>
+</tr>
+</table>
 
 Here's an example log of the program running:
 <pre>
